@@ -6,6 +6,7 @@ Runs on container creation to set up:
 - Claude settings (bypassPermissions mode)
 - Tmux configuration (200k history, mouse support)
 - Directory ownership fixes for mounted volumes
+- Claude dotfiles (stowed from ~/.dotfiles)
 """
 
 import contextlib
@@ -297,6 +298,48 @@ node_modules/
     )
 
 
+def setup_fish_history():
+    """Create the fish history directory on the /commandhistory volume.
+
+    ~/.local/share/fish is symlinked there in the Dockerfile, but volumes
+    created before that change won't have the directory yet.
+    """
+    fish_history = Path("/commandhistory/fish")
+    try:
+        fish_history.mkdir(exist_ok=True)
+    except OSError as e:
+        print(
+            f"[post_install] Warning: could not create {fish_history}: {e}",
+            file=sys.stderr,
+        )
+
+
+def setup_claude_dotfiles():
+    """Stow the claude package from ~/.dotfiles into ~/.claude.
+
+    Done here rather than in the Dockerfile because ~/.claude is a volume
+    mounted at runtime, which would hide anything stowed at build time.
+    """
+    dotfiles = Path.home() / ".dotfiles"
+    if not (dotfiles / "claude").is_dir():
+        print("[post_install] No claude dotfiles package, skipping", file=sys.stderr)
+        return
+
+    result = subprocess.run(
+        ["stow", "--no-folding", "-d", str(dotfiles), "-t", str(Path.home()), "claude"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(
+            f"[post_install] Warning: could not stow claude dotfiles: "
+            f"{result.stderr.strip()}",
+            file=sys.stderr,
+        )
+        return
+    print("[post_install] Claude dotfiles stowed", file=sys.stderr)
+
+
 def main():
     """Run all post-install configuration."""
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
@@ -305,6 +348,8 @@ def main():
     setup_claude_settings()
     setup_tmux_config()
     fix_directory_ownership()
+    setup_fish_history()
+    setup_claude_dotfiles()
     setup_global_gitignore()
 
     print("[post_install] Configuration complete!", file=sys.stderr)

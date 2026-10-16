@@ -18,11 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ripgrep \
   tmux \
   zsh \
+  fish \
   # Build tools
   build-essential \
   # Utilities
   jq \
   nano \
+  stow \
   unzip \
   vim \
   # Network tools (for security testing)
@@ -54,15 +56,50 @@ RUN ARCH=$(dpkg --print-architecture) && \
   esac && \
   curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-${FZF_ARCH}.tar.gz" | tar -xz -C /usr/local/bin
 
+# Install Neovim from GitHub releases (apt's 0.9.x is too old for current lazy.nvim)
+# renovate: datasource=github-releases depName=neovim/neovim
+ARG NEOVIM_VERSION=0.12.6
+RUN ARCH=$(dpkg --print-architecture) && \
+  case "${ARCH}" in \
+    amd64) NVIM_ARCH="x86_64" ;; \
+    arm64) NVIM_ARCH="arm64" ;; \
+    *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+  esac && \
+  mkdir -p /usr/local/lib/nvim && \
+  curl -fsSL "https://github.com/neovim/neovim/releases/download/v${NEOVIM_VERSION}/nvim-linux-${NVIM_ARCH}.tar.gz" | \
+    tar -xz -C /usr/local/lib/nvim --strip-components=1 && \
+  ln -s /usr/local/lib/nvim/bin/nvim /usr/local/bin/nvim
+
 # Create directories and set ownership (combined for fewer layers)
 RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt && \
   touch /commandhistory/.bash_history && \
   touch /commandhistory/.zsh_history && \
+  mkdir -p /commandhistory/fish && \
   chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /opt
+
+# System-wide shell init: Zed launches processes via docker exec with umask 0000,
+# so restore a sane umask; also add cargo bin to PATH for shells (ENV PATH below
+# covers non-shell processes)
+RUN printf '%s\n' \
+    '# devcontainer: restore sane umask (docker exec from Zed starts with 0000)' \
+    'umask 022' \
+    '# devcontainer: cargo/rustup binaries' \
+    'case ":$PATH:" in *":/home/vscode/.cargo/bin:"*) ;; *) export PATH="/home/vscode/.cargo/bin:$PATH" ;; esac' \
+    | tee -a /etc/zsh/zshenv /etc/bash.bashrc >/dev/null && \
+  mkdir -p /etc/fish/conf.d && \
+  printf '%s\n' \
+    '# devcontainer: restore sane umask (docker exec from Zed starts with 0000)' \
+    'umask 022' \
+    '# devcontainer: cargo/rustup binaries' \
+    'fish_add_path -g /home/vscode/.cargo/bin' \
+    > /etc/fish/conf.d/container-env.fish
+
+# Make fish the login shell
+RUN usermod -s /usr/bin/fish vscode
 
 # Set environment variables
 ENV DEVCONTAINER=true
-ENV SHELL=/bin/zsh
+ENV SHELL=/usr/bin/fish
 ENV EDITOR=nano
 ENV VISUAL=nano
 
@@ -98,6 +135,16 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
 # fnm's shell hook is zsh-only, so without this node/npm are missing from bash/sh
 ENV PATH="$FNM_DIR/aliases/default/bin:$PATH"
 
+# Install Rust via rustup (stable, minimal profile + common components)
+ENV RUSTUP_HOME="/home/vscode/.rustup" \
+  CARGO_HOME="/home/vscode/.cargo"
+RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
+  sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
+    --component rustfmt,clippy,rust-analyzer
+
+# Set via ENV (like fnm) so cargo works in bash, zsh and fish
+ENV PATH="$CARGO_HOME/bin:$PATH"
+
 # Install Oh My Zsh
 # renovate: datasource=github-releases depName=deluan/zsh-in-docker
 ARG ZSH_IN_DOCKER_VERSION=1.2.1
@@ -110,6 +157,20 @@ COPY --chown=vscode:vscode .zshrc /home/vscode/.zshrc.custom
 
 # Append custom zshrc to the main one
 RUN echo 'source ~/.zshrc.custom' >> /home/vscode/.zshrc
+
+# Install dotfiles with GNU Stow (--no-folding so tools don't write into the repo)
+# The claude package is stowed by post_install.py, since ~/.claude is a volume mounted at runtime
+ARG DOTFILES_REPO=https://github.com/0xdea/dotfiles.git
+RUN git clone "$DOTFILES_REPO" /home/vscode/.dotfiles && \
+  stow --no-folding -d /home/vscode/.dotfiles -t /home/vscode fish nvim tmux
+
+# Copy fish configuration
+COPY --chown=vscode:vscode devcontainer.fish /home/vscode/.config/fish/conf.d/devcontainer.fish
+
+# Keep fish history on the /commandhistory volume (directory symlink, since fish
+# replaces the history file atomically)
+RUN mkdir -p /home/vscode/.local/share && \
+  ln -s /commandhistory/fish /home/vscode/.local/share/fish
 
 # Copy post_install script
 COPY --chown=vscode:vscode post_install.py /opt/post_install.py

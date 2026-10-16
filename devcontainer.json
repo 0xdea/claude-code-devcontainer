@@ -19,10 +19,11 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "anthropic.claude-code"
+        "anthropic.claude-code",
+        "rust-lang.rust-analyzer"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.defaultProfile.linux": "fish",
         "terminal.integrated.profiles.linux": {
           "bash": {
             "path": "bash",
@@ -30,6 +31,9 @@
           },
           "zsh": {
             "path": "zsh"
+          },
+          "fish": {
+            "path": "fish"
           }
         },
         "files.trimTrailingWhitespace": true,
@@ -51,6 +55,7 @@
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "CLAUDE_CODE_SHELL": "/bin/zsh",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
     "GIT_CONFIG_GLOBAL": "/home/vscode/.gitconfig.local",
     "UV_LINK_MODE": "copy",
