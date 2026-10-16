@@ -47,6 +47,7 @@ def setup_onboarding_bypass():
         result = subprocess.run(
             ["claude", "-p", "ok"],
             capture_output=True,
+            check=False,
             text=True,
             timeout=30,
         )
@@ -328,6 +329,7 @@ def setup_claude_dotfiles():
     result = subprocess.run(
         ["stow", "--no-folding", "-d", str(dotfiles), "-t", str(Path.home()), "claude"],
         capture_output=True,
+        check=False,
         text=True,
     )
     if result.returncode != 0:
