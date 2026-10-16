@@ -140,7 +140,7 @@ devc up             Start the devcontainer
 devc rebuild        Rebuild container (preserves persistent volumes)
 devc destroy [-f]   Remove container, volumes, and image for current project
 devc down           Stop the container
-devc shell          Open zsh shell in container
+devc shell          Open fish shell in container
 devc exec CMD       Execute command inside the container
 devc upgrade        Upgrade Claude Code in the container
 devc mount SRC DST  Add a bind mount (host → container)
@@ -259,11 +259,12 @@ sudo iptables -A OUTPUT -j DROP
 
 | Component | Details |
 |-----------|---------|
-| Base | Ubuntu 24.04, Node.js 24, Python 3.13 + uv, zsh |
+| Base | Ubuntu 24.04, Node.js 24, Python 3.13 + uv, Rust (rustup), fish (default) + zsh |
 | User | `vscode` (passwordless sudo), working dir `/workspace` |
-| Tools | `rg`, `fd`, `tmux`, `fzf`, `delta`, `iptables`, `ipset` |
+| Tools | `rg`, `fd`, `tmux`, `fzf`, `delta`, `nvim`, `stow`, `iptables`, `ipset` |
 | Volumes (survive rebuilds) | Command history (`/commandhistory`), Claude config (`~/.claude`), GitHub CLI auth (`~/.config/gh`) |
 | Host mounts | `~/.gitconfig`, `.devcontainer/`, `.git/config`, `.git/hooks/` (all read-only) |
+| Dotfiles | [0xdea/dotfiles](https://github.com/0xdea/dotfiles) cloned to `~/.dotfiles` and stowed (`fish`, `nvim`, `tmux`, `claude`); override with the `DOTFILES_REPO` build arg |
 | Auto-configured | `bypassPermissions` mode (via `post_install.py`), skills from [anthropics/skills](https://github.com/anthropics/skills) + [trailofbits/skills](https://github.com/trailofbits/skills) + [trailofbits/skills-curated](https://github.com/trailofbits/skills-curated), git-delta |
 
 Volumes are stored outside the container, so your shell history, Claude settings, and `gh` login persist even after `devc rebuild`. Host `~/.gitconfig` is mounted read-only for git identity.
@@ -314,5 +315,5 @@ Test the container:
 
 ```bash
 devcontainer up --workspace-folder .
-devcontainer exec --workspace-folder . zsh
+devcontainer exec --workspace-folder . fish
 ```
