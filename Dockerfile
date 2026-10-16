@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   fish \
   # Build tools
   build-essential \
+    # GUI/automation deps (jiggy: mouse-rs needs libxdo, tests need a virtual X display)
+    libxdo-dev \
+    xvfb \
   # Utilities
   jq \
   nano \
