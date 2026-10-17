@@ -1,6 +1,6 @@
-# Claude Code in a devcontainer
+# zed-claude-devcontainer
 
-A containerized development environment for running Claude Code with `bypassPermissions` enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
+A containerized development environment for running Claude Code with `bypassPermissions` enabled, with support for Zed. Designed for security audit workflows and Rust development.
 
 ## About This Fork
 
@@ -38,7 +38,7 @@ Running Claude with `bypassPermissions` on your host machine is risky—it can e
 
   ```bash
   npm install -g @devcontainers/cli
-  git clone https://github.com/trailofbits/claude-code-devcontainer ~/.claude-devcontainer
+  git clone https://github.com/0xdea/claude-code-devcontainer ~/.claude-devcontainer
   ~/.claude-devcontainer/install.sh self-install
   ```
 
@@ -105,7 +105,7 @@ devc shell      # Opens shell in container
    devc .
 
    # Option B: Clone manually
-   git clone https://github.com/trailofbits/claude-code-devcontainer .devcontainer/
+   git clone https://github.com/0xdea/claude-code-devcontainer .devcontainer/
    ```
 
 3. Open **your project folder** in VS Code, then:
