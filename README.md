@@ -2,6 +2,20 @@
 
 A containerized development environment for running Claude Code with `bypassPermissions` enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
 
+## About This Fork
+
+zed-claude-devcontainer is based on [trailofbits/claude-code-devcontainer](https://github.com/trailofbits/claude-code-devcontainer), licensed under the Apache License 2.0. Main changes from upstream:
+
+- **Zed support**: Zed starts processes in the container via `docker exec` with umask `0000`, which leaves newly created files world-writable. The image restores umask `022` in the system-wide init for bash, zsh, and fish.
+- **`postCreateCommand` fix**: Zed mangles string-form lifecycle commands ([zed-industries/zed#62964](https://github.com/zed-industries/zed/issues/62964)), so `post_install.py` never ran. The command now uses the equivalent exec (array) form, which works in Zed, VS Code, and the devcontainers CLI (proposed upstream in [#56](https://github.com/trailofbits/claude-code-devcontainer/pull/56)).
+- **Git settings in `containerEnv`**: `core.checkStat=minimal` and `core.trustctime=false` are set through `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_*`/`GIT_CONFIG_VALUE_*`, so git doesn't treat bind-mounted files as modified just because their inode or ctime metadata differs from what the host recorded. Environment variables are used because the host `~/.gitconfig` is mounted read-only.
+- **fish as the default shell**: fish is the login shell, `$SHELL`, and the `devc shell` default, with the `.zshrc` aliases and fzf integration ported to `devcontainer.fish` and its history kept on the `/commandhistory` volume. Claude Code's Bash tool stays on zsh via `CLAUDE_CODE_SHELL`.
+- **Rust toolchain**: installed via rustup with `rustfmt`, `clippy`, and `rust-analyzer`, with cargo on `PATH` for all shells and non-shell processes.
+- **Neovim**: installed from GitHub releases, since the Ubuntu package is too old for current lazy.nvim.
+- **Dotfiles**: a dotfiles repo (`DOTFILES_REPO` build arg) is cloned and stowed; `claude` is stowed in `post_install.py` because `~/.claude` is a volume.
+- **GUI/automation dependencies**: `libxdo-dev` for mouse/keyboard automation crates and `xvfb` for running tests against a virtual X display.
+- **JSON schema**: `devcontainer.json` uses the base devcontainer schema, avoiding an unresolvable `vscode://` reference that editors other than VS Code report as an error.
+
 ## Why Use This?
 
 Running Claude with `bypassPermissions` on your host machine is risky—it can execute any command without confirmation. This devcontainer provides **filesystem isolation**, so unrestricted Claude reaches only your project directory and a disposable container, not the rest of your host.

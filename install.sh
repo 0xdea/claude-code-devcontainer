@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Claude Code Devcontainer CLI Helper
 # Provides the `devc` command for managing devcontainers
+# Modified by raptor, 2026: Zed support.
 
 # Resolve symlinks to get actual script location
 SOURCE="${BASH_SOURCE[0]}"
