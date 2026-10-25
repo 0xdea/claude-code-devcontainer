@@ -375,9 +375,11 @@ cmd_mount() {
 
   check_devcontainer_cli
   check_jq
+  check_no_sys_admin "$workspace_folder"
 
   log_info "Adding mount: $host_path → $container_path"
   update_devcontainer_mounts "$devcontainer_json" "$host_path" "$container_path" "$readonly"
+  strip_git_mounts_if_not_repo "$devcontainer_json" "$workspace_folder"
 
   log_info "Recreating container with new mount..."
   devcontainer up --workspace-folder "$workspace_folder" --remove-existing-container
