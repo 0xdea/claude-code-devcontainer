@@ -108,8 +108,11 @@ check_no_sys_admin() {
   fi
 }
 
+# Always the absolute path with symlinks resolved: containers are found by
+# their devcontainer.local_folder label, which must match the path they were
+# created with ("devc ." passes ".", which the CLI resolves to the real path).
 get_workspace_folder() {
-  echo "${1:-$(pwd)}"
+  (cd "${1:-.}" && pwd -P)
 }
 
 # Docker rejects a bind mount whose source is missing, so the .git mounts break
