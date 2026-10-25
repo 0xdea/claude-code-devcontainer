@@ -291,6 +291,15 @@ node_modules/
 [gpg "ssh"]
     program = /usr/bin/ssh-keygen
 
+# What `gh auth setup-git` writes. The gh login persists on its volume, but this file
+# is rewritten on every container creation, so the helper is set here
+[credential "https://github.com"]
+    helper =
+    helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+    helper =
+    helper = !gh auth git-credential
+
 # Bind mounts report a foreign uid, which trips git's ownership check
 [safe]
     directory = *
